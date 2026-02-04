@@ -1,0 +1,30 @@
+# wolfSSL password file (never commit!)
+wolfssl_password.txt
+
+# Docker volumes
+postgresql_data/
+pgadmin_data/
+
+# Environment files
+.env
+*.env.local
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*~
+
+# MacOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
+*.tar
+*.tar.gz

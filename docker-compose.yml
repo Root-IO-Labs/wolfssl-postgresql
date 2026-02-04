@@ -1,0 +1,140 @@
+version: '3.8'
+
+################################################################################
+# Docker Compose for FIPS-Enabled Ubuntu PostgreSQL
+#
+# This compose file demonstrates how to run the FIPS-enabled PostgreSQL
+# container (Ubuntu 22.04 base) with proper configuration and volume mounts.
+#
+# Usage:
+#   docker-compose up -d     # Start the database
+#   docker-compose logs -f   # View logs
+#   docker-compose down      # Stop and remove containers
+#   docker-compose down -v   # Stop and remove containers + volumes
+#
+# Copyright: Based on Bitnami PostgreSQL
+# SPDX-License-Identifier: APACHE-2.0
+################################################################################
+
+services:
+  postgresql-fips:
+    image: postgresql-fips-ubuntu:17.6
+    container_name: postgresql-fips-ubuntu
+
+    # Environment variables (Bitnami-compatible)
+    environment:
+      # PostgreSQL configuration
+      POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME:-postgres}
+      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD:-SecurePassword123!}
+      POSTGRESQL_DATABASE: ${POSTGRESQL_DATABASE:-testdb}
+
+      # Bitnami compatibility
+      BITNAMI_APP_NAME: postgresql-fips
+
+      # FIPS validation (set to 'true' to skip, useful for debugging)
+      SKIP_FIPS_CHECK: ${SKIP_FIPS_CHECK:-false}
+
+    # Port mapping
+    ports:
+      - "${POSTGRESQL_PORT_NUMBER:-5432}:5432"
+
+    # Volume mounts (Bitnami-compatible paths)
+    volumes:
+      # PostgreSQL data directory (persistent storage)
+      - postgresql_data:/bitnami/postgresql
+
+      # Initialization scripts (optional)
+      # Place .sql, .sql.gz, or .sh files here to run on first startup
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+
+      # Pre-initialization scripts (optional, runs before initdb)
+      - ./pre-init-scripts:/docker-entrypoint-preinitdb.d:ro
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Network
+    networks:
+      - postgresql-network
+
+    # Resource limits (optional, adjust as needed)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 512M
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    profiles:
+      - admin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - postgresql-network
+    restart: unless-stopped
+    depends_on:
+      postgresql-fips:
+        condition: service_healthy
+
+volumes:
+  # Persistent PostgreSQL data
+  postgresql_data:
+    driver: local
+
+  # Persistent pgAdmin data (if using admin profile)
+  pgadmin_data:
+    driver: local
+
+networks:
+  postgresql-network:
+    driver: bridge
+
+################################################################################
+# Usage Examples:
+#
+# 1. Start PostgreSQL only:
+#    docker-compose up -d
+#
+# 2. Start PostgreSQL with pgAdmin:
+#    docker-compose --profile admin up -d
+#
+# 3. Override default password:
+#    POSTGRESQL_PASSWORD=MySecurePass123 docker-compose up -d
+#
+# 4. Connect to PostgreSQL from host:
+#    psql -h localhost -p 5432 -U postgres -d testdb
+#
+# 5. View FIPS validation output:
+#    docker-compose logs postgresql-fips | grep FIPS
+#
+# 6. Test FIPS provider inside container:
+#    docker exec postgresql-fips-ubuntu /usr/local/bin/test-provider.sh
+#
+# 7. Verify wolfSSL FIPS mode:
+#    docker exec postgresql-fips-ubuntu openssl list -providers
+#
+# 8. Run SQL from host:
+#    docker exec -i postgresql-fips-ubuntu psql -U postgres -d testdb < query.sql
+#
+# 9. Access Bitnami logs:
+#    docker exec postgresql-fips-ubuntu cat /opt/bitnami/postgresql/logs/postgresql.log
+################################################################################
