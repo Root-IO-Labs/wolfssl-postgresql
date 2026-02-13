@@ -75,7 +75,7 @@ The container implements FIPS 140-3 compliant cryptography through:
       ✓ Entropy source validation: COMPLETE
 ```
 
-**Result:** All PostgreSQL cryptographic operations use FIPS-validated modules. Note: PostgreSQL dependencies include libldap (which depends on libgnutls) and psql uses GNU readline (which depends on ncurses containing non-FIPS SHA256). These non-FIPS libraries are used for non-cryptographic operations and do not compromise PostgreSQL's FIPS compliance boundary.
+**Result:** All PostgreSQL cryptographic operations use FIPS-validated modules. Note: PostgreSQL depends on libldap which uses libgnutls (a non-FIPS crypto library). libgnutls is used for LDAP operations, not PostgreSQL cryptographic operations, and does not compromise PostgreSQL's FIPS compliance boundary.
 
 ### 1.2 MD5 Authentication Compliance
 
@@ -241,8 +241,8 @@ The following medium severity CVEs are present but do not pose immediate securit
 - Hardware entropy source (RDRAND)
 - FIPS-approved random number generation (DRBG)
 - PostgreSQL cryptographic operations use FIPS-validated modules exclusively
-- Non-FIPS libraries (libgnutls, ncurses) present as dependencies but not used for PostgreSQL cryptography
-- TLS/SSL using FIPS-validated OpenSSL 3.0.18
+- libgnutls present as libldap dependency, used for LDAP operations (not PostgreSQL crypto)
+- TLS/SSL using FIPS-validated Ubuntu System OpenSSL 3.x with wolfProvider
 
 ### 5.2 Authentication Hardening
 

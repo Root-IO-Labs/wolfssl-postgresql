@@ -210,10 +210,9 @@ echo "[5.5/6] Verifying Ubuntu System OpenSSL with wolfProvider..."
 # - wolfProvider bridges OpenSSL 3.x to wolfSSL FIPS v5
 # - All crypto operations use FIPS-validated wolfSSL via wolfProvider
 #
-# Note: PostgreSQL depends on libldap (which depends on libgnutls) and psql uses
-# GNU readline (which depends on ncurses containing non-FIPS SHA256). These
-# non-FIPS libraries are used for non-cryptographic operations and do not
-# compromise PostgreSQL's FIPS compliance boundary.
+# Note: PostgreSQL depends on libldap which uses libgnutls (a non-FIPS crypto library).
+# libgnutls is used for LDAP operations, not PostgreSQL cryptographic operations.
+# This does not compromise PostgreSQL's FIPS compliance boundary.
 
 # Verify Ubuntu System OpenSSL libraries are present
 SYSTEM_SSL_MISSING=0
@@ -250,8 +249,7 @@ if [ $SYSTEM_SSL_MISSING -ne 0 ]; then
 fi
 
 echo "      ✓ PostgreSQL crypto operations use Ubuntu System OpenSSL + wolfProvider"
-echo "      ℹ Note: Non-FIPS libraries (libgnutls, ncurses) present as dependencies"
-echo "      ℹ These are used for non-cryptographic operations only"
+echo "      ℹ Note: libgnutls present as libldap dependency (used for LDAP, not PostgreSQL crypto)"
 
 ###############################################################################
 # Check 6: Cryptographic FIPS Validation (C utility)

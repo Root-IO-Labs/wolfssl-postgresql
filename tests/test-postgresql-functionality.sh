@@ -3,8 +3,8 @@
 # PostgreSQL FIPS 140-3 Functionality Test
 #
 # Purpose: Verify PostgreSQL functionality with Ubuntu System OpenSSL + wolfProvider
-#          architecture maintains FIPS 140-3 compliance while allowing necessary
-#          non-FIPS dependencies (libgnutls, ncurses) for non-cryptographic operations.
+#          architecture maintains FIPS 140-3 compliance while allowing libgnutls
+#          (non-FIPS crypto library) as an LDAP dependency.
 #
 # Tests:
 #   1. Container startup and FIPS validation
@@ -320,7 +320,7 @@ else
 fi
 
 # Check for ERROR/WARNING references to crypto libraries (excluding informational notes)
-# With Ubuntu System OpenSSL architecture, libgnutls and ncurses may exist as dependencies
+# With Ubuntu System OpenSSL architecture, libgnutls may exist as libldap dependency
 # We only fail if there are actual errors, not informational messages
 if echo "$LOGS" | grep -v "present as dependencies" | grep -v "ℹ Note:" | grep -iqE "(error|warning|fail).*\b(libgcrypt|libgnutls|libnettle|libhogweed|libk5crypto)\b"; then
     test_result "Alternative crypto references" "FAIL" "Found error/warning references to crypto libraries"
@@ -550,9 +550,8 @@ if [ $TESTS_FAILED -eq 0 ]; then
     echo "  operates with full FIPS 140-3 compliance."
     echo ""
     echo "  All PostgreSQL cryptographic operations use FIPS-validated wolfSSL."
-    echo "  Non-FIPS libraries (libgnutls, ncurses) present as dependencies do not"
-    echo "  compromise FIPS compliance boundary as they are used for non-cryptographic"
-    echo "  operations only."
+    echo "  libgnutls present as libldap dependency does not compromise FIPS compliance"
+    echo "  boundary as it is used for LDAP operations, not PostgreSQL cryptography."
     echo ""
     echo "  Custom OpenLDAP uses Ubuntu System OpenSSL (FIPS-validated via wolfProvider)."
     echo ""
