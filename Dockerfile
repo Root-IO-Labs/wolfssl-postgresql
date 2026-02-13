@@ -362,9 +362,9 @@ COPY prebuildfs /
 SHELL ["/bin/bash", "-o", "errexit", "-o", "nounset", "-o", "pipefail", "-c"]
 
 ################################################################################
-# CRITICAL FIPS STEP 1: Install FIPS OpenSSL to System Locations FIRST
+# CRITICAL FIPS STEP 1: Install Ubuntu System OpenSSL FIRST
 # This must happen BEFORE any apt-get/install_packages commands to ensure all
-# packages link to FIPS-validated OpenSSL instead of Ubuntu's system OpenSSL
+# packages link to Ubuntu System OpenSSL which is FIPS-validated via wolfProvider
 ################################################################################
 
 # Install Ubuntu System OpenSSL and copy FIPS components from builder
@@ -469,10 +469,10 @@ RUN set -eux; \
     echo "✓ wolfSSL FIPS libraries configured"
 
 ################################################################################
-# Note: Non-FIPS libraries (libgnutls, ncurses) present as dependencies
-# These are used for non-cryptographic operations and do not compromise
-# PostgreSQL's FIPS compliance boundary. All PostgreSQL cryptographic
-# operations use Ubuntu System OpenSSL with wolfProvider.
+# Note: libgnutls present as libldap dependency
+# Used for LDAP operations, not PostgreSQL cryptographic operations.
+# Does not compromise PostgreSQL's FIPS compliance boundary.
+# All PostgreSQL cryptographic operations use Ubuntu System OpenSSL with wolfProvider.
 ################################################################################
 
 # Set locale environment
