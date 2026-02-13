@@ -1,7 +1,7 @@
 ################################################################################
 # FIPS-Enabled Ubuntu PostgreSQL Docker Image
 #
-# This Dockerfile creates a PostgreSQL 17.6 image with FIPS 140-3 compliance
+# This Dockerfile creates a PostgreSQL 17.7 image with FIPS 140-3 compliance
 # using wolfSSL FIPS v5 and wolfProvider, with Ubuntu 24.04 base and Bitnami scripts.
 #
 # Build Requirements:
@@ -11,7 +11,7 @@
 # Build Command:
 #   DOCKER_BUILDKIT=1 docker buildx build \
 #     --secret id=wolfssl_password,src=wolfssl_password.txt \
-#     -t postgresql-fips-ubuntu:17.6 .
+#     -t postgresql-fips-ubuntu:17.7.0 .
 #
 # Copyright: Based on Bitnami PostgreSQL
 # SPDX-License-Identifier: APACHE-2.0
@@ -183,7 +183,7 @@ RUN set -eux; \
 ################################################################################
 FROM builder AS postgres-builder
 
-ENV POSTGRES_VERSION=17.6
+ENV POSTGRES_VERSION=17.7
 ENV POSTGRES_PREFIX=/opt/bitnami/postgresql
 ENV OPENLDAP_VERSION=2.5.18
 ENV OPENLDAP_PREFIX=/opt/openldap-fips
@@ -331,7 +331,7 @@ RUN set -eux; \
     mkdir -p ${POSTGRES_PREFIX}/share/postgresql; \
     mkdir -p ${POSTGRES_PREFIX}/data; \
     mkdir -p ${POSTGRES_PREFIX}/conf; \
-    echo "PostgreSQL 17.6.0 built and installed successfully"
+    echo "PostgreSQL 17.7.0 built and installed successfully"
 
 # Verify PostgreSQL build
 RUN ${POSTGRES_PREFIX}/bin/postgres --version
@@ -355,7 +355,7 @@ LABEL com.vmware.cp.artifact.flavor="sha256:c50c90cfd9d12b445b011e6ad529f1ad3dae
       org.opencontainers.image.description="FIPS-enabled PostgreSQL on Ubuntu 22.04 with Bitnami scripts" \
       org.opencontainers.image.title="postgresql-fips-ubuntu" \
       org.opencontainers.image.vendor="FIPS PostgreSQL" \
-      org.opencontainers.image.version="17.6.0-fips"
+      org.opencontainers.image.version="17.7.0-fips"
 
 # Copy prebuildfs (contains install_packages and other helpers)
 COPY prebuildfs /
@@ -499,7 +499,7 @@ ENV PATH="/usr/bin:/usr/local/bin:/usr/local/sbin:/opt/bitnami/postgresql/bin:/o
     OPENSSL_MODULES="/usr/lib/x86_64-linux-gnu/ossl-modules"
 
 # PostgreSQL environment variables (Bitnami-compatible)
-ENV APP_VERSION="17.6.0" \
+ENV APP_VERSION="17.7.0" \
     BITNAMI_APP_NAME="postgresql-fips" \
     IMAGE_REVISION="1" \
     LANG="en_US.UTF-8" \

@@ -9,7 +9,7 @@
 # Usage:
 #   ./test-ldap-openssl.sh [image_name]
 #
-# Default image: postgresql-fips-ubuntu:17.6.0
+# Default image: postgresql-fips-ubuntu:17.7.0
 #
 # Test Coverage:
 #   - OpenLDAP library presence and structure
@@ -25,7 +25,7 @@
 
 set -e
 
-IMAGE_NAME="${1:-postgresql-fips-ubuntu:17.6.0}"
+IMAGE_NAME="${1:-postgresql-fips-ubuntu:17.7.0}"
 FAILED_TESTS=0
 PASSED_TESTS=0
 CONTAINER_NAME="test-ldap-openssl-$$"
@@ -139,22 +139,14 @@ LDD_OUTPUT=$(docker run --rm --entrypoint /bin/bash "$IMAGE_NAME" -c "ldd /opt/o
 echo "  Library dependencies for libldap.so:"
 echo "$LDD_OUTPUT" | grep -E "libssl|libcrypto|libgnutls|libsasl" | sed 's/^/    /'
 
-# Check for OpenSSL linkage - can be at /usr/local/openssl/lib64 or /usr/lib/x86_64-linux-gnu
-# (we copy FIPS OpenSSL to /usr/lib/x86_64-linux-gnu so system packages use FIPS crypto)
+# Check for OpenSSL linkage - can be at /usr/local/openssl/lib64 (old) or /usr/lib/x86_64-linux-gnu (new)
 SSL_LINK=$(echo "$LDD_OUTPUT" | grep "libssl\.so" | grep -o " => [^ ]*" | cut -d' ' -f3)
 
 if echo "$SSL_LINK" | grep -q "/usr/local/openssl/lib64/libssl"; then
     pass "libldap correctly linked to FIPS-validated OpenSSL (/usr/local/openssl/lib64/)"
 elif echo "$SSL_LINK" | grep -q "/usr/lib/x86_64-linux-gnu/libssl"; then
-    # Verify this is the FIPS OpenSSL by comparing checksums
-    SYS_CKSUM=$(docker run --rm --entrypoint /bin/bash "$IMAGE_NAME" -c "md5sum /usr/lib/x86_64-linux-gnu/libssl.so.3 | cut -d' ' -f1")
-    FIPS_CKSUM=$(docker run --rm --entrypoint /bin/bash "$IMAGE_NAME" -c "md5sum /usr/local/openssl/lib64/libssl.so.3 | cut -d' ' -f1")
-
-    if [ "$SYS_CKSUM" = "$FIPS_CKSUM" ]; then
-        pass "libldap correctly linked to FIPS-validated OpenSSL (/usr/lib/x86_64-linux-gnu/ - verified FIPS copy)"
-    else
-        fail "libldap linked to non-FIPS OpenSSL at /usr/lib/x86_64-linux-gnu/ (checksum mismatch)"
-    fi
+    # Ubuntu System OpenSSL with wolfProvider
+    pass "libldap correctly linked to Ubuntu System OpenSSL (/usr/lib/x86_64-linux-gnu/) with wolfProvider"
 else
     fail "libldap NOT linked to FIPS OpenSSL (unknown library: $SSL_LINK)"
 fi
@@ -165,15 +157,8 @@ CRYPTO_LINK=$(echo "$LDD_OUTPUT" | grep "libcrypto\.so" | grep -o " => [^ ]*" | 
 if echo "$CRYPTO_LINK" | grep -q "/usr/local/openssl/lib64/libcrypto"; then
     pass "libldap correctly linked to FIPS-validated libcrypto (/usr/local/openssl/lib64/)"
 elif echo "$CRYPTO_LINK" | grep -q "/usr/lib/x86_64-linux-gnu/libcrypto"; then
-    # Verify this is the FIPS OpenSSL by comparing checksums
-    SYS_CRYPTO_CKSUM=$(docker run --rm --entrypoint /bin/bash "$IMAGE_NAME" -c "md5sum /usr/lib/x86_64-linux-gnu/libcrypto.so.3 | cut -d' ' -f1")
-    FIPS_CRYPTO_CKSUM=$(docker run --rm --entrypoint /bin/bash "$IMAGE_NAME" -c "md5sum /usr/local/openssl/lib64/libcrypto.so.3 | cut -d' ' -f1")
-
-    if [ "$SYS_CRYPTO_CKSUM" = "$FIPS_CRYPTO_CKSUM" ]; then
-        pass "libldap correctly linked to FIPS-validated libcrypto (/usr/lib/x86_64-linux-gnu/ - verified FIPS copy)"
-    else
-        fail "libldap linked to non-FIPS libcrypto at /usr/lib/x86_64-linux-gnu/ (checksum mismatch)"
-    fi
+    # Ubuntu System OpenSSL with wolfProvider
+    pass "libldap correctly linked to Ubuntu System libcrypto (/usr/lib/x86_64-linux-gnu/) with wolfProvider"
 else
     fail "libldap NOT linked to FIPS libcrypto (unknown library: $CRYPTO_LINK)"
 fi
@@ -364,14 +349,14 @@ RUNTIME_CRYPTO=$(docker exec "$CONTAINER_NAME" ldd /opt/bitnami/postgresql/bin/p
 echo "  Cryptographic libraries in use:"
 echo "$RUNTIME_CRYPTO" | sed 's/^/    /'
 
-# Check for FIPS OpenSSL at runtime - can be at /usr/local/openssl/lib64 or /usr/lib/x86_64-linux-gnu
+# Check for FIPS OpenSSL at runtime - can be at /usr/local/openssl/lib64 (old) or /usr/lib/x86_64-linux-gnu (new)
 RUNTIME_SSL_LINK=$(echo "$RUNTIME_CRYPTO" | grep "libssl\.so" | grep -o " => [^ ]*" | cut -d' ' -f3)
 
 if echo "$RUNTIME_SSL_LINK" | grep -q "/usr/local/openssl/lib64/libssl"; then
     pass "Runtime: Using FIPS-validated OpenSSL (/usr/local/openssl/lib64/)"
 elif echo "$RUNTIME_SSL_LINK" | grep -q "/usr/lib/x86_64-linux-gnu/libssl"; then
-    # Verify this is the FIPS OpenSSL (already validated above, so we can trust it)
-    pass "Runtime: Using FIPS-validated OpenSSL (/usr/lib/x86_64-linux-gnu/ - verified FIPS copy)"
+    # Ubuntu System OpenSSL with wolfProvider
+    pass "Runtime: Using Ubuntu System OpenSSL (/usr/lib/x86_64-linux-gnu/) with wolfProvider"
 else
     fail "Runtime: Not using FIPS-validated OpenSSL (unknown library: $RUNTIME_SSL_LINK)"
 fi

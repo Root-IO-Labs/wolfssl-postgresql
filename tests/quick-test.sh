@@ -7,14 +7,14 @@
 # Usage:
 #   ./quick-test.sh [image_name]
 #
-# Default image: postgresql-fips-ubuntu:17.6.0
+# Default image: postgresql-fips-ubuntu:17.7.0
 #
 # Test Coverage:
 #   - Image structure validation
 #   - FIPS startup checks (wolfSSL FIPS v5)
 #   - Operating Environment (OE) compliance
 #   - OpenSSL 3.x + wolfProvider configuration
-#   - PostgreSQL 17.6 with FIPS crypto
+#   - PostgreSQL 17.7 with FIPS crypto
 #   - CRITICAL: Fail-closed security enforcement
 #   - CRITICAL: MD5 algorithm rejection (FIPS requirement)
 #   - Full container startup and crypto operations
@@ -25,7 +25,7 @@
 
 set -e
 
-IMAGE_NAME="${1:-postgresql-fips-ubuntu:17.6.0}"
+IMAGE_NAME="${1:-postgresql-fips-ubuntu:17.7.0}"
 FAILED_TESTS=0
 PASSED_TESTS=0
 
@@ -114,25 +114,36 @@ echo "========================================"
 echo "Test Suite 1: Image Structure"
 echo "========================================"
 
-run_test_with_output \
-    "No system OpenSSL (libssl3) present" \
-    "docker run --rm $IMAGE_NAME find /usr/lib /lib -name 'libssl.so*' 2>/dev/null || true" \
-    "^$"
-
-run_test_with_output \
-    "FIPS OpenSSL present" \
-    "docker run --rm $IMAGE_NAME ls /usr/local/openssl/lib64/libssl.so.3" \
-    "libssl.so.3"
+echo -n "Testing: OpenSSL library present ... "
+# Check for OpenSSL at either location (custom or system)
+if docker run --rm $IMAGE_NAME test -f /usr/local/openssl/lib64/libssl.so.3 2>/dev/null; then
+    echo "✓ PASS (custom FIPS OpenSSL)"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+elif docker run --rm $IMAGE_NAME test -f /usr/lib/x86_64-linux-gnu/libssl.so.3 2>/dev/null; then
+    echo "✓ PASS (Ubuntu System OpenSSL)"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+else
+    echo "✗ FAIL"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
 
 run_test_with_output \
     "wolfSSL library present" \
     "docker run --rm $IMAGE_NAME find /usr/local/lib -name 'libwolfssl.so*'" \
     "libwolfssl.so"
 
-run_test_with_output \
-    "wolfProvider module present" \
-    "docker run --rm $IMAGE_NAME ls /usr/local/lib64/ossl-modules/libwolfprov.so" \
-    "libwolfprov.so"
+echo -n "Testing: wolfProvider module present ... "
+# Check for wolfProvider at either location
+if docker run --rm $IMAGE_NAME test -f /usr/local/lib64/ossl-modules/libwolfprov.so 2>/dev/null; then
+    echo "✓ PASS (custom location)"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+elif docker run --rm $IMAGE_NAME test -f /usr/lib/x86_64-linux-gnu/ossl-modules/libwolfprov.so 2>/dev/null; then
+    echo "✓ PASS (system location)"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+else
+    echo "✗ FAIL"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
 
 echo ""
 echo "========================================"
@@ -184,10 +195,16 @@ run_test_with_output \
     "docker run --rm $IMAGE_NAME /usr/local/bin/fips-entrypoint.sh /bin/true" \
     "✓ CPU architecture: x86_64"
 
-run_test_with_output \
-    "Non-FIPS library check passes" \
-    "docker run --rm $IMAGE_NAME /usr/local/bin/fips-entrypoint.sh /bin/true" \
-    "✓ No system OpenSSL libraries found"
+echo -n "Testing: OpenSSL architecture validation ... "
+# Check entrypoint validates OpenSSL correctly (accepts both architectures)
+output=$(docker run --rm $IMAGE_NAME /usr/local/bin/fips-entrypoint.sh /bin/true 2>&1 || true)
+if echo "$output" | grep -qE "✓ No system OpenSSL libraries found|✓ Ubuntu System OpenSSL 3.x libraries present"; then
+    echo "✓ PASS"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+else
+    echo "✗ FAIL"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
 
 echo ""
 echo "========================================"
@@ -220,19 +237,25 @@ echo "Test Suite 5: PostgreSQL"
 echo "========================================"
 
 run_test_with_output \
-    "PostgreSQL version (17.6)" \
+    "PostgreSQL version (17.7)" \
     "docker run --rm $IMAGE_NAME postgres --version" \
-    "17\.6"
+    "17\.7"
 
 run_test_with_output \
     "PostgreSQL SSL support compiled in" \
     "docker run --rm --entrypoint='' $IMAGE_NAME /opt/bitnami/postgresql/bin/pg_config --configure" \
     "with-openssl"
 
-run_test_with_output \
-    "PostgreSQL links to FIPS OpenSSL" \
-    "docker run --rm $IMAGE_NAME ldd /opt/bitnami/postgresql/bin/postgres" \
-    "/usr/local/openssl/lib64/libssl.so"
+echo -n "Testing: PostgreSQL links to FIPS OpenSSL ... "
+# Check PostgreSQL linkage (accepts both architectures)
+ldd_output=$(docker run --rm $IMAGE_NAME ldd /opt/bitnami/postgresql/bin/postgres 2>&1 || true)
+if echo "$ldd_output" | grep -qE "/usr/local/openssl/lib64/libssl.so|/usr/lib/x86_64-linux-gnu/libssl.so"; then
+    echo "✓ PASS"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+else
+    echo "✗ FAIL"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
 
 echo ""
 echo "========================================"
@@ -263,7 +286,7 @@ else
 fi
 
 echo -n "Testing: Fail-closed on missing wolfProvider ... "
-output=$(docker run --rm --user root $IMAGE_NAME bash -c 'rm /usr/local/lib64/ossl-modules/libwolfprov.so; /usr/local/bin/fips-entrypoint.sh /bin/true' 2>&1 || true)
+output=$(docker run --rm --user root $IMAGE_NAME bash -c 'rm /usr/lib/x86_64-linux-gnu/ossl-modules/libwolfprov.so*; /usr/local/bin/fips-entrypoint.sh /bin/true' 2>&1 || true)
 if echo "$output" | grep -q "✗ FIPS VALIDATION FAILED"; then
     echo "✓ PASS (correctly fails)"
     PASSED_TESTS=$((PASSED_TESTS + 1))

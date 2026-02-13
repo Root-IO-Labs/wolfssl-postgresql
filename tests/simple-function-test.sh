@@ -4,7 +4,7 @@
 # Tests that non-FIPS functions are removed from pgcrypto
 ################################################################################
 
-IMAGE=${1:-postgresql-fips-ubuntu:17.6.0}
+IMAGE=${1:-postgresql-fips-ubuntu:17.7.0}
 CONTAINER="simple-test-$$"
 
 echo "==========================================="

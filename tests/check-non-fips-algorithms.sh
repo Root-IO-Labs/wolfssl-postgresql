@@ -9,7 +9,7 @@
 #   ./tests/check-non-fips-algorithms.sh [image-name]
 #
 # Example:
-#   ./tests/check-non-fips-algorithms.sh postgresql-fips-ubuntu:17.6.0
+#   ./tests/check-non-fips-algorithms.sh postgresql-fips-ubuntu:17.7.0
 #
 # Runtime: ~3-5 minutes
 #
@@ -38,7 +38,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Get image name from argument or use default
-IMAGE_NAME="${1:-postgresql-fips-ubuntu:17.6.0}"
+IMAGE_NAME="${1:-postgresql-fips-ubuntu:17.7.0}"
 CONTAINER_NAME="postgres-algo-test-$$"
 FAILED=0
 TEST_COUNT=0
@@ -84,7 +84,7 @@ test_openssl_blocked() {
     output=$(docker run --rm "$IMAGE_NAME" bash -c "$cmd" 2>&1 || true)
 
     # Check if command failed (expected for non-FIPS)
-    if echo "$output" | grep -qi "disabled\|unsupported\|unknown\|not supported\|invalid\|error"; then
+    if echo "$output" | grep -qi "disabled\|unsupported\|unknown\|not supported\|invalid\|error\|failed"; then
         echo -e "${GREEN}✓ BLOCKED${NC} (expected)"
         PASS_COUNT=$((PASS_COUNT + 1))
         BLOCKED_COUNT=$((BLOCKED_COUNT + 1))

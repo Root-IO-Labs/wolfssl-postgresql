@@ -9,14 +9,6 @@ A FIPS 140-3 compliant PostgreSQL 17.7 Docker image built on **Ubuntu 22.04** wi
 - **FIPS Module:** wolfSSL FIPS v5 (FIPS 140-3 validated)
 - **Compatibility:** Bitnami scripts and directory structure
 - **User ID:** 1001 (Bitnami standard)
-- **Build Variants:** Standard (FIPS only) and Hardened (FIPS + STIG/CIS)
-
-## Build Variants
-
-Two Dockerfiles are available:
-
-- **Dockerfile** - FIPS 140-3 compliant image
-- **Dockerfile.hardened** - FIPS 140-3 + DISA STIG/CIS hardened image
 
 ## Key Features
 
@@ -71,24 +63,6 @@ FIPS 140-3 Compliant Operations
 - 4GB+ RAM for build
 - 10GB+ disk space
 
-### Required Files
-
-**Standard Build (Dockerfile):**
-- Dockerfile
-- wolfssl_password.txt
-- fips-entrypoint.sh
-- openssl-wolfprov.cnf
-- test-fips.c
-- fips-startup-check.c
-- rootfs/ directory
-- prebuildfs/ directory
-
-**Hardened Build (Dockerfile.hardened):**
-- All files from standard build
-- Dockerfile.hardened
-- build-hardened.sh
-- patches/ directory (CVE patches)
-
 ## Common Tasks Quick Reference
 
 ### Running Tests with Password
@@ -129,8 +103,6 @@ chmod 600 wolfssl_password.txt
 
 ### 2. Build the Image
 
-**Standard Build (FIPS Only):**
-
 ```bash
 # Using build script (recommended)
 ./build.sh
@@ -139,19 +111,6 @@ chmod 600 wolfssl_password.txt
 DOCKER_BUILDKIT=1 docker buildx build \
   --secret id=wolfssl_password,src=wolfssl_password.txt \
   -t postgresql-fips-ubuntu:17.7.0 .
-```
-
-**Hardened Build (FIPS + STIG/CIS):**
-
-```bash
-# Using build script (recommended)
-./build-hardened.sh
-
-# Or manually
-DOCKER_BUILDKIT=1 docker buildx build \
-  --secret id=wolfssl_password,src=wolfssl_password.txt \
-  -t postgresql-fips-ubuntu:17.7.0-hardened \
-  -f Dockerfile.hardened .
 ```
 
 **Build time:** 25-35 minutes (first build), 2-5 minutes (cached)
@@ -635,31 +594,13 @@ Runtime packages are specifically for Ubuntu 22.04:
 - FIPS validation enforced at startup
 - Container won't start if validation fails
 
-### Security Hardening (Standard)
+### Security Hardening
 
 - Non-root user (UID 1001)
 - SUID/SGID bits removed
 - Minimal attack surface
 - No build tools in runtime image
 - Regular security updates applied
-
-### STIG/CIS Hardening (Dockerfile.hardened)
-
-Additional hardening measures in the hardened variant:
-
-- Password policies (STIG UBTU-22-411015): 60-day max age, 7-day min age, SHA512 encryption
-- Password complexity (STIG UBTU-22-611015/611020): 15-char minimum, character class requirements
-- Failed login lockout (STIG UBTU-22-412010): 3 attempts, 15-minute lockout
-- PAM faillock integration with audit logging
-- Kernel parameter hardening (ASLR, ptrace restrictions, network stack protections)
-- Audit rules for time changes, identity changes, authentication events
-- SSH hardening (key-only auth, FIPS ciphers, connection limits)
-- Sudo logging and session timeout
-- File permission enforcement (644/640/600 based on sensitivity)
-- System account shell restriction
-- Core dump prevention
-- Root login restrictions
-- pgaudit extension for database activity logging
 
 ### Best Practices
 
@@ -674,10 +615,8 @@ Additional hardening measures in the hardened variant:
 
 ```
 17.7.0-ubuntu-22.04/
-├── Dockerfile                      # FIPS 140-3 build
-├── Dockerfile.hardened             # FIPS + STIG/CIS build
-├── build.sh                        # Standard build script
-├── build-hardened.sh               # Hardened build script
+├── Dockerfile                      # Multi-stage FIPS build
+├── build.sh                        # Build automation
 ├── docker-compose.yml              # Orchestration
 ├── fips-entrypoint.sh              # FIPS validation wrapper
 ├── openssl-wolfprov.cnf            # OpenSSL configuration
@@ -687,7 +626,6 @@ Additional hardening measures in the hardened variant:
 ├── .env.example                    # Environment template
 ├── .gitignore                      # Git exclusions
 ├── wolfssl_password.txt.example    # Password template
-├── patches/                        # CVE patches (hardened only)
 ├── rootfs/                         # Bitnami scripts
 ├── prebuildfs/                     # Bitnami prebuild
 ├── init-scripts/                   # Initialization scripts
@@ -696,28 +634,13 @@ Additional hardening measures in the hardened variant:
 
 ## Build Specifications
 
-| Component | Dockerfile | Dockerfile.hardened |
-|-----------|------------|---------------------|
-| Build time | 25-35 min | 25-35 min |
-| Image size | ~700-900MB | ~800-1000MB |
-| Base OS | Ubuntu 22.04 | Ubuntu 22.04 |
-| PostgreSQL | 17.7 | 17.7 |
-| OpenSSL | 3.0.15 | 3.0.18 |
-| wolfSSL | 5.8.2 FIPS v5.2.3 | 5.8.2 FIPS v5.2.3 |
-| wolfProvider | v1.1.0 | v1.1.0 |
-| STIG/CIS | No | Yes |
-| pgaudit | No | Yes (v17.0) |
-| CVE patches | No | Yes (gzip, util-linux) |
-
-## Build Artifacts
-
-### Standard Build Output
-
-Standard FIPS build produces a container with OpenSSL 3.0.15, wolfSSL FIPS v5.2.3, and PostgreSQL 17.7. The build process generates FIPS validation artifacts in `/usr/local/bin/fips-startup-check` and comprehensive test scripts.
-
-### Hardened Build Output
-
-Hardened build produces all standard artifacts plus STIG/CIS compliance configurations in `/etc/security/`, `/etc/audit/`, `/etc/pam.d/`, and `/etc/sysctl.d/`. Custom-built binaries with CVE patches are installed to `/usr/bin/` and `/usr/sbin/`. The pgaudit extension is available at `/opt/bitnami/postgresql/lib/pgaudit.so` for database activity logging.
+- **Build time:** 25-35 minutes (first), 2-5 minutes (cached)
+- **Image size:** ~700-900MB
+- **Base images:** Ubuntu 22.04
+- **PostgreSQL:** 17.7 (from source)
+- **OpenSSL:** 3.0.15 (with FIPS)
+- **wolfSSL:** 5.8.2 FIPS v5.2.3
+- **wolfProvider:** v1.1.0
 
 ## Performance Notes
 
