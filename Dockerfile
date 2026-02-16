@@ -469,10 +469,9 @@ RUN set -eux; \
     echo "✓ wolfSSL FIPS libraries configured"
 
 ################################################################################
-# Note: libgnutls present as libldap dependency
-# Used for LDAP operations, not PostgreSQL cryptographic operations.
-# Does not compromise PostgreSQL's FIPS compliance boundary.
-# All PostgreSQL cryptographic operations use Ubuntu System OpenSSL with wolfProvider.
+# Note: Custom OpenLDAP built with OpenSSL (not GnuTLS)
+# All LDAP TLS/SSL operations use Ubuntu System OpenSSL with wolfProvider (FIPS-validated)
+# All PostgreSQL cryptographic operations use Ubuntu System OpenSSL with wolfProvider
 ################################################################################
 
 # Set locale environment

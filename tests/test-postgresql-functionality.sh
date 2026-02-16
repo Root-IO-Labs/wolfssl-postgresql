@@ -320,7 +320,7 @@ else
 fi
 
 # Check for ERROR/WARNING references to crypto libraries (excluding informational notes)
-# With Ubuntu System OpenSSL architecture, libgnutls may exist as libldap dependency
+# Custom OpenLDAP built with OpenSSL (not GnuTLS) for FIPS compliance
 # We only fail if there are actual errors, not informational messages
 if echo "$LOGS" | grep -v "present as dependencies" | grep -v "ℹ Note:" | grep -iqE "(error|warning|fail).*\b(libgcrypt|libgnutls|libnettle|libhogweed|libk5crypto)\b"; then
     test_result "Alternative crypto references" "FAIL" "Found error/warning references to crypto libraries"
@@ -557,10 +557,9 @@ if [ $TESTS_FAILED -eq 0 ]; then
     echo "  operates with full FIPS 140-3 compliance."
     echo ""
     echo "  All PostgreSQL cryptographic operations use FIPS-validated wolfSSL."
-    echo "  libgnutls present as libldap dependency does not compromise FIPS compliance"
-    echo "  boundary as it is used for LDAP operations, not PostgreSQL cryptography."
+    echo "  Custom OpenLDAP uses OpenSSL (FIPS-validated via wolfProvider) for LDAP operations."
     echo ""
-    echo "  Custom OpenLDAP uses Ubuntu System OpenSSL (FIPS-validated via wolfProvider)."
+    echo "  All LDAP TLS/SSL operations use Ubuntu System OpenSSL (FIPS-validated via wolfProvider)."
     echo ""
     exit 0
 else
