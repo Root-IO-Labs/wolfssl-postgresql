@@ -10,7 +10,7 @@
 #   ./build.sh [OPTIONS]
 #
 # Options:
-#   --tag, -t <name>     Docker image tag (default: postgresql-fips-ubuntu:17.6)
+#   --tag, -t <name>     Docker image tag (default: postgresql-fips-ubuntu:17.7.0)
 #   --no-cache           Build without using cache
 #   --help, -h           Show this help message
 #
@@ -23,7 +23,7 @@
 set -e
 
 # Default values
-IMAGE_TAG="postgresql-fips-ubuntu:17.6"
+IMAGE_TAG="postgresql-fips-ubuntu:17.7.0"
 BUILD_ARGS=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

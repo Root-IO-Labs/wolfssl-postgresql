@@ -80,7 +80,7 @@ If you see this error, the container requires authentication. Fix by:
 
 2. Or ensuring the container has `POSTGRESQL_PASSWORD` set:
    ```bash
-   docker run -e POSTGRESQL_PASSWORD=yourpass postgresql-fips-ubuntu:17.6
+   docker run -e POSTGRESQL_PASSWORD=yourpass postgresql-fips-ubuntu:17.7.0
    ```
 
 ### Container Not Found

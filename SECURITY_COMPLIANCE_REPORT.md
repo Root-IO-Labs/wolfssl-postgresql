@@ -75,7 +75,7 @@ The container implements FIPS 140-3 compliant cryptography through:
       ✓ Entropy source validation: COMPLETE
 ```
 
-**Result:** All cryptographic operations use FIPS-validated modules. No non-FIPS crypto libraries present.
+**Result:** All PostgreSQL cryptographic operations use FIPS-validated modules. Note: PostgreSQL uses custom-built OpenLDAP with OpenSSL. All LDAP TLS/SSL operations use FIPS-validated OpenSSL via wolfProvider.
 
 ### 1.2 MD5 Authentication Compliance
 
@@ -240,8 +240,9 @@ The following medium severity CVEs are present but do not pose immediate securit
 - Hardware-accelerated AES encryption (AES-NI)
 - Hardware entropy source (RDRAND)
 - FIPS-approved random number generation (DRBG)
-- Non-FIPS crypto libraries removed from system
-- TLS/SSL using FIPS-validated OpenSSL 3.0.18
+- PostgreSQL cryptographic operations use FIPS-validated modules exclusively
+- Custom OpenLDAP uses OpenSSL (FIPS-validated via wolfProvider) for all LDAP TLS/SSL operations
+- TLS/SSL using FIPS-validated Ubuntu System OpenSSL 3.x with wolfProvider
 
 ### 5.2 Authentication Hardening
 
@@ -261,7 +262,7 @@ The following medium severity CVEs are present but do not pose immediate securit
 
 ### 5.4 Network Security
 
-- Default deny firewall rules
+- Firewall configuration managed by orchestration platform (Kubernetes NetworkPolicies, etc.)
 - Minimal exposed services
 - Secure protocol enforcement (TLS 1.2+)
 - FIPS-approved cipher suites

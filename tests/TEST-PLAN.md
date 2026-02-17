@@ -23,7 +23,7 @@ Before testing, ensure you have:
 5. ✅ Linux host with kernel >= 6.8.x (for full OE validation)
 
 **Important Notes:**
-- **Image Name:** All tests use `postgresql-fips-ubuntu:17.6.0` (ensure you tag your build correctly)
+- **Image Name:** All tests use `postgresql-fips-ubuntu:17.7.0` (ensure you tag your build correctly)
 - **PostgreSQL Authentication:** Tests use `PGPASSWORD=testpass123` environment variable to authenticate
   - Alternative: Use `--entrypoint=""` to bypass authentication for filesystem checks
   - Password set via: `-e POSTGRESQL_PASSWORD=testpass123` during container startup
@@ -38,7 +38,7 @@ Before testing, ensure you have:
 
 **Steps:**
 ```bash
-cd postgresql/17.6.0-ubuntu-22.04
+cd postgresql/17.7.0-ubuntu-22.04
 
 # Ensure wolfSSL password file exists
 ls -la wolfssl_password.txt
@@ -47,7 +47,7 @@ ls -la wolfssl_password.txt
 export DOCKER_BUILDKIT=1
 time docker buildx build \
   --secret id=wolfssl_password,src=wolfssl_password.txt \
-  --tag postgresql-fips-ubuntu:17.6.0 \
+  --tag postgresql-fips-ubuntu:17.7.0 \
   --progress=plain \
   --file Dockerfile \
   . 2>&1 | tee build.log
@@ -62,10 +62,10 @@ time docker buildx build \
 **Validation:**
 ```bash
 # Check image was created
-docker images postgresql-fips-ubuntu:17.6.0
+docker images postgresql-fips-ubuntu:17.7.0
 
 # Check image size (should be ~450-550MB)
-docker images postgresql-fips-ubuntu:17.6.0 --format "{{.Size}}"
+docker images postgresql-fips-ubuntu:17.7.0 --format "{{.Size}}"
 
 # Verify libssl3 was NOT installed (check build log)
 grep -i "libssl3" build.log
@@ -81,11 +81,11 @@ grep -i "libssl3" build.log
 **Steps:**
 ```bash
 # Search for system OpenSSL libraries in the image
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   find /usr/lib /lib -name "libssl.so*" -o -name "libcrypto.so*" 2>/dev/null
 
 # Check for other non-FIPS crypto libraries
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   find /usr/lib /lib -name "libmbedtls*" -o -name "libnss3*" 2>/dev/null
 ```
 
@@ -96,7 +96,7 @@ docker run --rm postgresql-fips-ubuntu:17.6.0 \
 **Additional Verification:**
 ```bash
 # Verify FIPS OpenSSL is present (bypass entrypoint for direct filesystem access)
-docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.6.0 \
+docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.7.0 \
   ls -lh /usr/local/openssl/lib64/libssl.so.3 /usr/local/openssl/lib64/libcrypto.so.3
 
 # Expected output:
@@ -104,7 +104,7 @@ docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.6.0 \
 # -rwxr-xr-x 1 root root 795K ... /usr/local/openssl/lib64/libssl.so.3
 
 # Alternative: Use shell to expand wildcards
-docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.6.0 \
+docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.7.0 \
   sh -c 'ls -lh /usr/local/openssl/lib64/libssl.so* /usr/local/openssl/lib64/libcrypto.so*'
 ```
 
@@ -119,11 +119,11 @@ docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.6.0 \
 **Steps:**
 ```bash
 # Test on current host (should pass if kernel >= 6.8.x)
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   /usr/local/bin/fips-entrypoint.sh /bin/true
 
 # Check the output for kernel validation
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   /usr/local/bin/fips-entrypoint.sh /bin/true 2>&1 | grep -A 10 "Operating Environment"
 ```
 
@@ -151,7 +151,7 @@ docker run --rm postgresql-fips-ubuntu:17.6.0 \
 **Steps:**
 ```bash
 # This should pass (x86_64)
-docker run --rm --platform linux/amd64 postgresql-fips-ubuntu:17.6.0 \
+docker run --rm --platform linux/amd64 postgresql-fips-ubuntu:17.7.0 \
   bash -c 'uname -m; /usr/local/bin/fips-entrypoint.sh /bin/true' 2>&1 | head -20
 ```
 
@@ -170,11 +170,11 @@ docker run --rm --platform linux/amd64 postgresql-fips-ubuntu:17.6.0 \
 **Steps:**
 ```bash
 # Check if your CPU has RDRAND and AES-NI
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   grep -E "rdrand|aes" /proc/cpuinfo | head -5
 
 # Run entrypoint and check detection
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   /usr/local/bin/fips-entrypoint.sh /bin/true 2>&1 | grep -E "RDRAND|AES-NI"
 ```
 
@@ -203,7 +203,7 @@ docker run --rm postgresql-fips-ubuntu:17.6.0 \
 **Steps:**
 ```bash
 # Run the FIPS startup check utility directly
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   /usr/local/bin/fips-startup-check
 ```
 
@@ -252,7 +252,7 @@ Container startup authorized
 **Steps:**
 ```bash
 # Normal startup (should pass)
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   /usr/local/bin/fips-entrypoint.sh /bin/true 2>&1 | grep -A 5 "non-FIPS crypto"
 ```
 
@@ -276,7 +276,7 @@ docker run --rm postgresql-fips-ubuntu:17.6.0 \
 **Steps:**
 ```bash
 # Check loaded providers
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   openssl list -providers
 ```
 
@@ -292,7 +292,7 @@ Providers:
 **Additional Test:**
 ```bash
 # Verbose provider information
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   openssl list -providers -verbose
 ```
 
@@ -310,27 +310,27 @@ docker run --rm postgresql-fips-ubuntu:17.6.0 \
 **Steps:**
 ```bash
 # Test SHA-256 hash
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   bash -c 'echo -n "test" | openssl dgst -sha256'
 
 # Expected output:
 # SHA2-256(stdin)= 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
 
 # Test random number generation
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   openssl rand -hex 32
 
 # Should output 64 hex characters (32 bytes)
 
 # Test AES encryption (bypassing entrypoint)
 # NOTE: wolfProvider v1.1.0 does not fully support PBKDF2, so we test direct AES
-docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.6.0 \
+docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.7.0 \
   bash -c 'echo "test data" | openssl enc -aes-256-cbc -K $(openssl rand -hex 32) -iv $(openssl rand -hex 16) | openssl base64'
 
 # Should output: base64 encoded encrypted data (no errors)
 
 # Alternative: Test with digest (fully supported)
-docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.6.0 \
+docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.7.0 \
   bash -c 'echo "test data" | openssl dgst -sha256'
 
 # Should output: SHA256(stdin)= <hash>
@@ -367,7 +367,7 @@ This test simulates a scenario where the fips-startup-check binary is missing or
 **Steps:**
 ```bash
 # Test that container FAILS when fips-startup-check is missing
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   bash -c 'rm /usr/local/bin/fips-startup-check; /usr/local/bin/fips-entrypoint.sh /bin/true' 2>&1 | grep -A 3 "FIPS VALIDATION FAILED"
 ```
 
@@ -393,7 +393,7 @@ This test simulates a scenario where the wolfProvider module is missing.
 **Steps:**
 ```bash
 # Test that container FAILS when wolfProvider is missing
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   bash -c 'rm /usr/local/lib64/ossl-modules/libwolfprov.so; /usr/local/bin/fips-entrypoint.sh /bin/true' 2>&1 | grep -A 3 "FIPS VALIDATION FAILED"
 ```
 
@@ -418,7 +418,7 @@ wolfProvider module is missing or invalid
 **Steps:**
 ```bash
 # Test that container FAILS when wolfSSL library is missing
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   bash -c 'rm /usr/local/lib/libwolfssl.so*; /usr/local/bin/fips-entrypoint.sh /bin/true' 2>&1 | grep -A 3 "FIPS VALIDATION FAILED"
 ```
 
@@ -445,7 +445,7 @@ After verifying fail-closed behavior, confirm that valid configurations still st
 **Steps:**
 ```bash
 # Normal startup should still pass
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   /usr/local/bin/fips-entrypoint.sh /bin/true 2>&1 | grep "ALL FIPS CHECKS PASSED"
 ```
 
@@ -484,7 +484,7 @@ docker run --rm postgresql-fips-ubuntu:17.6.0 \
 **Steps:**
 ```bash
 # Run full validation (should complete all 6 checks)
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   /usr/local/bin/fips-entrypoint.sh postgres --version 2>&1 | tee startup-validation.log
 
 # Check that all validation steps passed
@@ -531,7 +531,7 @@ docker run -d \
   --name postgres-fips-test \
   -e POSTGRESQL_PASSWORD=testpass123 \
   -e ALLOW_EMPTY_PASSWORD=no \
-  postgresql-fips-ubuntu:17.6.0
+  postgresql-fips-ubuntu:17.7.0
 
 # Wait for startup (30 seconds)
 sleep 30
@@ -573,7 +573,7 @@ docker run -d \
   --name postgres-fips-test \
   -e POSTGRESQL_PASSWORD=testpass123 \
   -e ALLOW_EMPTY_PASSWORD=no \
-  postgresql-fips-ubuntu:17.6.0
+  postgresql-fips-ubuntu:17.7.0
 
 # Wait for PostgreSQL to start (check logs for "ready to accept connections")
 sleep 30
@@ -669,7 +669,7 @@ docker rm postgres-fips-test
 **Steps:**
 ```bash
 # Check PostgreSQL binary dependencies (bypass entrypoint)
-docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.6.0 \
+docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.7.0 \
   ldd /opt/bitnami/postgresql/bin/postgres | grep -E "ssl|crypto|wolf"
 ```
 
@@ -692,15 +692,15 @@ libcrypto.so.3 => /usr/local/openssl/lib64/libcrypto.so.3 (0x...)
 **Steps:**
 ```bash
 # Check OpenSSL binary dependencies (bypass entrypoint)
-docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.6.0 \
+docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.7.0 \
   ldd /usr/local/openssl/bin/openssl | grep -E "ssl|crypto|wolf"
 
 # Check for wolfProvider module
-docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.6.0 \
+docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.7.0 \
   ls -lh /usr/local/lib64/ossl-modules/libwolfprov.so
 
 # Check wolfSSL library
-docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.6.0 \
+docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.7.0 \
   sh -c 'ls -lh /usr/local/lib/libwolfssl.so*'
 ```
 
@@ -719,7 +719,7 @@ docker run --rm --entrypoint="" postgresql-fips-ubuntu:17.6.0 \
 
 **Steps:**
 ```bash
-cd postgresql/17.6.0-ubuntu-22.04
+cd postgresql/17.7.0-ubuntu-22.04
 
 # Check documentation files exist
 ls -lh docs/
@@ -751,7 +751,7 @@ wc -l docs/*.md
 # You can skip this test if you want to keep your image intact
 
 # Test what happens if fips-startup-check is missing
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   bash -c 'rm /usr/local/bin/fips-startup-check; /usr/local/bin/fips-entrypoint.sh /bin/true' 2>&1 | grep ERROR
 
 # Should show error about missing FIPS check utility
@@ -830,12 +830,12 @@ curl -I https://www.wolfssl.com/
 **Solution:**
 ```bash
 # Check kernel version
-docker run --rm postgresql-fips-ubuntu:17.6.0 uname -r
+docker run --rm postgresql-fips-ubuntu:17.7.0 uname -r
 
 # Must be >= 6.8.x
 
 # Check CPU architecture
-docker run --rm postgresql-fips-ubuntu:17.6.0 uname -m
+docker run --rm postgresql-fips-ubuntu:17.7.0 uname -m
 
 # Must be x86_64
 ```
@@ -852,14 +852,14 @@ ERROR: wolfProvider module not found
 **Solution:**
 ```bash
 # Check OPENSSL_MODULES environment variable
-docker run --rm postgresql-fips-ubuntu:17.6.0 env | grep OPENSSL
+docker run --rm postgresql-fips-ubuntu:17.7.0 env | grep OPENSSL
 
 # Check module file exists
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   ls -la /usr/local/lib64/ossl-modules/libwolfprov.so
 
 # Check OpenSSL config
-docker run --rm postgresql-fips-ubuntu:17.6.0 \
+docker run --rm postgresql-fips-ubuntu:17.7.0 \
   cat /usr/local/openssl/ssl/openssl.cnf
 ```
 

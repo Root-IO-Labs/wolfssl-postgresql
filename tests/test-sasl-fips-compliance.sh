@@ -65,9 +65,9 @@ if [ -z "$CONTAINER_NAME" ]; then
         echo -e "${BLUE}ℹ Starting temporary container: $CONTAINER_NAME${NC}"
         docker run -d --name "$CONTAINER_NAME" \
             -e POSTGRESQL_PASSWORD=testpass123 \
-            postgresql-fips-ubuntu:17.6.0 >/dev/null 2>&1 || {
+            postgresql-fips-ubuntu:17.7.0 >/dev/null 2>&1 || {
             echo -e "${RED}✗ ERROR: Failed to start container${NC}"
-            echo "Please ensure postgresql-fips-ubuntu:17.6.0 image exists"
+            echo "Please ensure postgresql-fips-ubuntu:17.7.0 image exists"
             exit 1
         }
         echo "Waiting for PostgreSQL to initialize..."
@@ -84,7 +84,7 @@ else
         echo "  1. Run without arguments to auto-start a temporary container"
         echo "  2. Provide a running container name"
         echo "  3. Start a container first:"
-        echo "     docker run -d --name postgresql-fips -e POSTGRESQL_PASSWORD=test postgresql-fips-ubuntu:17.6.0"
+        echo "     docker run -d --name postgresql-fips -e POSTGRESQL_PASSWORD=test postgresql-fips-ubuntu:17.7.0"
         exit 1
     fi
 fi
@@ -151,30 +151,33 @@ else
 fi
 
 ################################################################################
-# Test 4: Non-FIPS mechanisms disabled
+# Test 4: Non-FIPS mechanisms NOT in allowlist (therefore blocked)
 ################################################################################
 echo ""
-echo "Test 4: Checking non-FIPS mechanisms disabled..."
+echo "Test 4: Verifying mech_list uses allowlist approach..."
 
-# Check DIGEST-MD5 disabled
-if docker exec "$CONTAINER_NAME" grep -q "!DIGEST-MD5" /etc/sasl2/postgresql.conf 2>/dev/null; then
-    test_result "DIGEST-MD5 disabled" "PASS"
+# Verify non-FIPS mechanisms are NOT in the mech_list (allowlist approach blocks them)
+MECH_LIST=$(docker exec "$CONTAINER_NAME" grep "^mech_list:" /etc/sasl2/postgresql.conf 2>/dev/null || echo "")
+
+# Check DIGEST-MD5 is NOT in allowlist (therefore blocked)
+if ! echo "$MECH_LIST" | grep -q "DIGEST-MD5"; then
+    test_result "DIGEST-MD5 not in allowlist (blocked)" "PASS"
 else
-    test_result "DIGEST-MD5 disabled" "FAIL" "Should be explicitly disabled with !DIGEST-MD5"
+    test_result "DIGEST-MD5 not in allowlist (blocked)" "FAIL" "DIGEST-MD5 should not be in mech_list"
 fi
 
-# Check CRAM-MD5 disabled
-if docker exec "$CONTAINER_NAME" grep -q "!CRAM-MD5" /etc/sasl2/postgresql.conf 2>/dev/null; then
-    test_result "CRAM-MD5 disabled" "PASS"
+# Check CRAM-MD5 is NOT in allowlist (therefore blocked)
+if ! echo "$MECH_LIST" | grep -q "CRAM-MD5"; then
+    test_result "CRAM-MD5 not in allowlist (blocked)" "PASS"
 else
-    test_result "CRAM-MD5 disabled" "FAIL" "Should be explicitly disabled with !CRAM-MD5"
+    test_result "CRAM-MD5 not in allowlist (blocked)" "FAIL" "CRAM-MD5 should not be in mech_list"
 fi
 
-# Check NTLM disabled
-if docker exec "$CONTAINER_NAME" grep -q "!NTLM" /etc/sasl2/postgresql.conf 2>/dev/null; then
-    test_result "NTLM disabled" "PASS"
+# Check NTLM is NOT in allowlist (therefore blocked)
+if ! echo "$MECH_LIST" | grep -q "NTLM"; then
+    test_result "NTLM not in allowlist (blocked)" "PASS"
 else
-    test_result "NTLM disabled" "FAIL" "Should be explicitly disabled with !NTLM"
+    test_result "NTLM not in allowlist (blocked)" "FAIL" "NTLM should not be in mech_list"
 fi
 
 ################################################################################
@@ -246,8 +249,8 @@ if [ $TESTS_FAILED -eq 0 ]; then
     echo ""
     echo "FIPS Compliance Status:"
     echo "  ✓ libsasl2-2 configured for FIPS-only mechanisms"
-    echo "  ✓ SCRAM-SHA-256 and GSSAPI enabled"
-    echo "  ✓ Non-FIPS mechanisms (DIGEST-MD5, CRAM-MD5, NTLM) disabled"
+    echo "  ✓ SCRAM-SHA-256 and GSSAPI enabled (allowlist)"
+    echo "  ✓ Non-FIPS mechanisms (DIGEST-MD5, CRAM-MD5, NTLM) blocked (not in allowlist)"
     echo "  ✓ All SASL authentication will use FIPS-validated OpenSSL"
     exit 0
 else
@@ -255,7 +258,7 @@ else
     echo ""
     echo "Please review the failures above and ensure:"
     echo "  1. SASL configuration file is properly installed"
-    echo "  2. Only FIPS-approved mechanisms are enabled"
-    echo "  3. Non-FIPS mechanisms are explicitly disabled"
+    echo "  2. Only FIPS-approved mechanisms are in mech_list (allowlist)"
+    echo "  3. Non-FIPS mechanisms are NOT in mech_list (blocked)"
     exit 1
 fi

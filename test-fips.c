@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <wolfssl/options.h>
 #include <wolfssl/wolfcrypt/settings.h>
 #include <wolfssl/wolfcrypt/random.h>
@@ -12,6 +13,14 @@ int main(void)
     wc_Sha256 sha;
     byte hash[WC_SHA256_DIGEST_SIZE];
     const char* data = "abc";
+
+    /* Expected SHA256 hash of "abc" */
+    const byte expected_hash[WC_SHA256_DIGEST_SIZE] = {
+        0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea,
+        0x41, 0x41, 0x40, 0xde, 0x5d, 0xae, 0x22, 0x23,
+        0xb0, 0x03, 0x61, 0xa3, 0x96, 0x17, 0x7a, 0x9c,
+        0xb4, 0x10, 0xff, 0x61, 0xf2, 0x00, 0x15, 0xad
+    };
 
     printf("Testing wolfSSL FIPS installation...\n");
 
@@ -60,7 +69,19 @@ int main(void)
     }
     printf("\n");
 
-    printf("Expected:       ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\n");
+    printf("Expected:       ");
+    for (int i = 0; i < WC_SHA256_DIGEST_SIZE; i++) {
+        printf("%02x", expected_hash[i]);
+    }
+    printf("\n");
+
+    /* Compare computed hash with expected hash */
+    if (memcmp(hash, expected_hash, WC_SHA256_DIGEST_SIZE) != 0) {
+        printf("\n✗ SHA256 hash mismatch! FIPS cryptography is not working correctly.\n");
+        return 1;
+    }
+    printf("SHA256 hash matches expected value ✓\n");
+
     printf("\nwolfSSL FIPS test: ALL PASSED ✓\n");
 
     return 0;
